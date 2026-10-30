@@ -86,8 +86,8 @@ class PeminjamanController extends Controller
      */
     public function destroy(Peminjaman $peminjaman)
     {
-        // Kembalikan stok bila belum dikembalikan
-        if ($peminjaman->status !== 'returned') {
+        // Kembalikan stok hanya bila peminjaman masih menahan stok
+        if (in_array($peminjaman->status, ['pending', 'approved'], true)) {
             $peminjaman->barang->increment('jumlah', $peminjaman->jumlah);
         }
 
