@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Peminjaman;
+use App\Http\Requests\PeminjamanStoreRequest;
+use App\Http\Requests\PeminjamanUpdateRequest;
 use App\Models\Barang;
-use Illuminate\Http\Request;
+use App\Models\Peminjaman;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class PeminjamanController extends Controller
@@ -18,25 +20,24 @@ class PeminjamanController extends Controller
             'peminjaman' => Peminjaman::with(['user', 'barang'])
                 ->orderByDesc('created_at')
                 ->paginate(15),
+            'barangList' => Barang::where('jumlah', '>', 0)
+                ->orderBy('nama')
+                ->get(['id', 'kode', 'nama', 'jumlah']),
         ]);
     }
 
     /**
      * Simpan peminjaman baru (user atau admin).
      */
-    public function store(Request $request)
+    public function store(PeminjamanStoreRequest $request)
     {
-        $validated = $request->validate([
-            'barang_id'      => 'required|exists:barangs,id',
-            'jumlah'         => 'required|integer|min:1',
-            'tanggal_pinjam' => 'required|date',
-            'keterangan'     => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
-        // Pastikan stok barang cukup
         $barang = Barang::findOrFail($validated['barang_id']);
         if ($validated['jumlah'] > $barang->jumlah) {
-            return back()->withErrors(['jumlah' => 'Stok tidak mencukupi.']);
+            throw ValidationException::withMessages([
+                'jumlah' => 'Stok tidak mencukupi.',
+            ]);
         }
 
         // Kurangi stok sementara (bisa di‑adjust saat status berubah)
@@ -53,15 +54,26 @@ class PeminjamanController extends Controller
     /**
      * Update status atau data peminjaman (admin).
      */
-    public function update(Request $request, Peminjaman $peminjaman)
+    public function update(PeminjamanUpdateRequest $request, Peminjaman $peminjaman)
     {
-        $validated = $request->validate([
-            'status' => 'required|in:pending,approved,returned,rejected',
-        ]);
+        $validated = $request->validated();
 
-        // Jika status berubah menjadi returned, kembalikan stok
-        if ($peminjaman->status !== 'returned' && $validated['status'] === 'returned') {
+        $statusMenahanStok = ['pending', 'approved'];
+        $duluMenahanStok = in_array($peminjaman->status, $statusMenahanStok, true);
+        $kiniMenahanStok = in_array($validated['status'], $statusMenahanStok, true);
+
+        if ($duluMenahanStok && ! $kiniMenahanStok) {
+            // Status menjadi returned/rejected → stok dikembalikan
             $peminjaman->barang->increment('jumlah', $peminjaman->jumlah);
+        } elseif (! $duluMenahanStok && $kiniMenahanStok) {
+            // Peminjaman diaktifkan kembali → stok harus masih cukup
+            if ($peminjaman->barang->jumlah < $peminjaman->jumlah) {
+                throw ValidationException::withMessages([
+                    'status' => 'Stok barang tidak mencukupi untuk mengaktifkan kembali peminjaman ini.',
+                ]);
+            }
+
+            $peminjaman->barang->decrement('jumlah', $peminjaman->jumlah);
         }
 
         $peminjaman->update($validated);
