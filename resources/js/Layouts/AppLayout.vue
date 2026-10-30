@@ -134,6 +134,22 @@ function logout() {
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                             />
                         </svg>
+
+                        <!-- Clipboard icon for Peminjaman -->
+                        <svg
+                            v-else-if="item.icon === 'clipboard'"
+                            class="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012 2h2a2 2 0 012-2M9 5h6"
+                            />
+                        </svg>
                     </span>
                     <span v-if="sidebarOpen" class="ml-3">{{ item.name }}</span>
                 </Link>
@@ -169,6 +185,26 @@ function logout() {
                     </button>
                 </div>
             </header>
+
+            <!-- Top navigation bar (navbar) -->
+            <nav class="bg-gray-100 border-b border-gray-200">
+                <div class="flex space-x-4 px-6 py-2">
+                    <Link
+                        v-for="item in navigation"
+                        :key="item.name"
+                        :href="item.href"
+                        :class="[
+                            isActive(item.href)
+                                ? 'text-blue-600 font-medium'
+                                : 'text-gray-600 hover:text-gray-800',
+                            'text-sm',
+                        ]"
+                    >
+                        {{ item.name }}
+                    </Link>
+                </div>
+            </nav>
+
             <main class="p-6">
                 <slot />
             </main>
