@@ -33,6 +33,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('barang', BarangController::class)->except(['create', 'show', 'edit']);
     Route::resource('kategori', KategoriController::class)->except(['create', 'show', 'edit']);
     Route::resource('ruangan', RuanganController::class)->except(['create', 'show', 'edit']);
+    Route::resource('peminjaman', PeminjamanController::class)->except(['create', 'show', 'edit']);
 });
 
 require __DIR__ . '/auth.php';
