@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class PeminjamanUpdateRequest extends FormRequest
 {
@@ -12,7 +13,7 @@ class PeminjamanUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -23,7 +24,9 @@ class PeminjamanUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'status' => ['required', Rule::in(['pending', 'approved', 'returned', 'rejected'])],
+            'tanggal_kembali' => ['nullable', 'date'],
+            'keterangan' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

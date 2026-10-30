@@ -12,7 +12,7 @@ class PeminjamanStoreRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return $this->user() !== null;
     }
 
     /**
@@ -23,7 +23,10 @@ class PeminjamanStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'barang_id'      => ['required', 'exists:barangs,id'],
+            'jumlah'         => ['required', 'integer', 'min:1'],
+            'tanggal_pinjam' => ['required', 'date', 'after_or_equal:today'],
+            'keterangan'     => ['nullable', 'string', 'max:1000'],
         ];
     }
 }
