@@ -16,6 +16,7 @@ const navigation = computed(() => [
               { name: "Barang", href: "/barang", icon: "inventory" },
               { name: "Kategori", href: "/kategori", icon: "category" },
               { name: "Ruangan", href: "/ruangan", icon: "room" },
+              { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
           ]
         : []),
 ]);
