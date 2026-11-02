@@ -82,6 +82,41 @@ class PeminjamanController extends Controller
     }
 
     /**
+     * Setujui peminjaman (admin).
+     *
+     * Stok sudah dikurangi saat pengajuan dibuat, jadi approval hanya mengubah status.
+     */
+    public function approve(Peminjaman $peminjaman)
+    {
+        if ($peminjaman->status !== 'pending') {
+            throw ValidationException::withMessages([
+                'status' => 'Hanya peminjaman berstatus pending yang dapat disetujui.',
+            ]);
+        }
+
+        $peminjaman->update(['status' => 'approved']);
+
+        return redirect()->back();
+    }
+
+    /**
+     * Tolak peminjaman (admin) dan kembalikan stok barang.
+     */
+    public function reject(Peminjaman $peminjaman)
+    {
+        if (! in_array($peminjaman->status, ['pending', 'approved'], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Peminjaman ini sudah selesai diproses.',
+            ]);
+        }
+
+        $peminjaman->barang->increment('jumlah', $peminjaman->jumlah);
+        $peminjaman->update(['status' => 'rejected']);
+
+        return redirect()->back();
+    }
+
+    /**
      * Hapus peminjaman (admin).
      */
     public function destroy(Peminjaman $peminjaman)

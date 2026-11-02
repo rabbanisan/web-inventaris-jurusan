@@ -8,6 +8,7 @@ use App\Models\Barang;
 use App\Models\Kategori;
 use App\Models\Ruangan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Throwable;
 
@@ -64,7 +65,14 @@ class BarangController extends Controller
             'kondisi' => 'required|in:baik,rusak_ringan,rusak_berat',
             'jumlah' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
+            'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ], [], [
+            'gambar' => 'gambar barang',
         ]);
+
+        if ($request->hasFile('gambar')) {
+            $validated['gambar'] = $request->file('gambar')->store('barang', 'public');
+        }
 
         Barang::create($validated);
 
@@ -81,7 +89,19 @@ class BarangController extends Controller
             'kondisi' => 'required|in:baik,rusak_ringan,rusak_berat',
             'jumlah' => 'required|integer|min:1',
             'keterangan' => 'nullable|string',
+            'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'hapus_gambar' => ['nullable', 'boolean'],
+        ], [], [
+            'gambar' => 'gambar barang',
         ]);
+
+        if ($request->hasFile('gambar')) {
+            $this->hapusFileGambar($barang);
+            $validated['gambar'] = $request->file('gambar')->store('barang', 'public');
+        } elseif ($request->boolean('hapus_gambar')) {
+            $this->hapusFileGambar($barang);
+            $validated['gambar'] = null;
+        }
 
         $barang->update($validated);
 
@@ -90,8 +110,26 @@ class BarangController extends Controller
 
     public function destroy(Barang $barang)
     {
+        $this->hapusFileGambar($barang);
+
         $barang->delete();
 
         return redirect()->back();
+    }
+
+    /**
+     * Hapus file gambar barang dari storage (bila memang file lokal, bukan URL eksternal).
+     */
+    private function hapusFileGambar(Barang $barang): void
+    {
+        if (! $barang->gambar) {
+            return;
+        }
+
+        if (str_starts_with($barang->gambar, 'http://') || str_starts_with($barang->gambar, 'https://')) {
+            return;
+        }
+
+        Storage::disk('public')->delete($barang->gambar);
     }
 }

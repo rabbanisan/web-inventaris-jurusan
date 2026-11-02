@@ -1,27 +1,25 @@
 <?php
 
 use App\Http\Controllers\BarangController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\PeminjamanController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicCatalogController;
 use App\Http\Controllers\RuanganController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', [PublicCatalogController::class, 'index'])->name('catalog.home');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Katalog publik: siapa pun (tanpa login) dapat melihat barang yang tersedia
+Route::get('/katalog', [PublicCatalogController::class, 'index'])->name('katalog');
+
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -43,6 +41,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('ruangan/import', [RuanganController::class, 'import'])->name('ruangan.import');
     Route::get('ruangan/template', [RuanganController::class, 'template'])->name('ruangan.template');
     Route::resource('ruangan', RuanganController::class)->except(['create', 'show', 'edit']);
+    Route::patch('peminjaman/{peminjaman}/approve', [PeminjamanController::class, 'approve'])->name('peminjaman.approve');
+    Route::patch('peminjaman/{peminjaman}/reject', [PeminjamanController::class, 'reject'])->name('peminjaman.reject');
     Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'update', 'destroy']);
 });
 
