@@ -52,6 +52,18 @@ function submit() {
         });
     }
 }
+
+function approve(item) {
+    if (confirm(`Setujui peminjaman #${item.id}?`)) {
+        router.patch(`/peminjaman/${item.id}/approve`, {}, { preserveScroll: true });
+    }
+}
+
+function reject(item) {
+    if (confirm(`Tolak peminjaman #${item.id}? Stok barang akan dikembalikan.`)) {
+        router.patch(`/peminjaman/${item.id}/reject`, {}, { preserveScroll: true });
+    }
+}
 </script>
 
 <template>
@@ -82,8 +94,24 @@ function submit() {
                         <td class="px-4 py-2">{{ item.user?.name }}</td>
                         <td class="px-4 py-2">{{ item.barang?.nama }}</td>
                         <td class="px-4 py-2">{{ item.jumlah }}</td>
-                        <td class="px-4 py-2">{{ item.status }}</td>
                         <td class="px-4 py-2">
+                            <span
+                                :class="{
+                                    'bg-yellow-100 text-yellow-800': item.status === 'pending',
+                                    'bg-blue-100 text-blue-800': item.status === 'approved',
+                                    'bg-green-100 text-green-800': item.status === 'returned',
+                                    'bg-red-100 text-red-800': item.status === 'rejected',
+                                }"
+                                class="px-2 py-1 text-xs font-medium rounded-full capitalize"
+                            >
+                                {{ item.status }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 space-x-2">
+                            <template v-if="item.status === 'pending'">
+                                <button @click="approve(item)" class="text-green-600 hover:text-green-800">Setujui</button>
+                                <button @click="reject(item)" class="text-red-600 hover:text-red-800">Tolak</button>
+                            </template>
                             <button @click="openEdit(item)" class="text-blue-600 hover:text-blue-800">Ubah Status</button>
                         </td>
                     </tr>

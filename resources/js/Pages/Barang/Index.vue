@@ -42,6 +42,8 @@ const form = useForm({
     kondisi: 'baik',
     jumlah: 1,
     keterangan: '',
+    gambar: null,
+    hapus_gambar: false,
 });
 
 function openCreate() {
@@ -59,19 +61,26 @@ function openEdit(item) {
     form.kondisi = item.kondisi;
     form.jumlah = item.jumlah;
     form.keterangan = item.keterangan || '';
+    form.gambar = null;
+    form.hapus_gambar = false;
     editMode.value = true;
     showModal.value = true;
 }
 
+function onGambarChange(event) {
+    form.gambar = event.target.files?.[0] ?? null;
+}
+
 function submit() {
+    const options = {
+        forceFormData: true,
+        onSuccess: () => { showModal.value = false; form.reset(); },
+    };
+
     if (editMode.value) {
-        form.put(`/barang/${form.id}`, {
-            onSuccess: () => { showModal.value = false; form.reset(); },
-        });
+        form.put(`/barang/${form.id}`, options);
     } else {
-        form.post('/barang', {
-            onSuccess: () => { showModal.value = false; form.reset(); },
-        });
+        form.post('/barang', options);
     }
 }
 
@@ -104,6 +113,7 @@ function destroy(id) {
                 <table class="w-full">
                     <thead class="bg-gray-50">
                         <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gambar</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
@@ -115,9 +125,20 @@ function destroy(id) {
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         <tr v-if="!barang?.data?.length">
-                            <td colspan="7" class="px-6 py-8 text-center text-gray-400">Belum ada data barang</td>
+                            <td colspan="8" class="px-6 py-8 text-center text-gray-400">Belum ada data barang</td>
                         </tr>
                         <tr v-for="item in barang?.data" :key="item.id" class="hover:bg-gray-50">
+                            <td class="px-6 py-4">
+                                <img
+                                    v-if="item.gambar_url"
+                                    :src="item.gambar_url"
+                                    :alt="item.nama"
+                                    class="h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                />
+                                <span v-else class="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 text-xs text-gray-400">
+                                    -
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-sm font-mono text-gray-500">{{ item.kode }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ item.nama }}</td>
                             <td class="px-6 py-4 text-sm text-gray-500">{{ item.kategori?.nama ?? '-' }}</td>
@@ -213,6 +234,31 @@ function destroy(id) {
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
                             <textarea v-model="form.keterangan" rows="2" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Gambar Barang</label>
+                            <div v-if="editMode && form.id" class="mb-2 flex items-center space-x-3">
+                                <template v-if="!form.hapus_gambar">
+                                    <img
+                                        v-if="barang?.data?.find((i) => i.id === form.id)?.gambar_url"
+                                        :src="barang.data.find((i) => i.id === form.id).gambar_url"
+                                        alt="Gambar barang"
+                                        class="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                                    />
+                                </template>
+                                <label class="inline-flex items-center space-x-2 text-xs text-gray-600">
+                                    <input v-model="form.hapus_gambar" type="checkbox" class="rounded border-gray-300" />
+                                    <span>Hapus gambar saat disimpan</span>
+                                </label>
+                            </div>
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg file:mr-3 file:px-3 file:py-2 file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700"
+                                @change="onGambarChange"
+                            />
+                            <p class="text-xs text-gray-400 mt-1">Format JPG/PNG/WEBP, maksimal 2 MB.</p>
+                            <p v-if="form.errors.gambar" class="text-red-500 text-xs mt-1">{{ form.errors.gambar }}</p>
                         </div>
                         <div class="flex justify-end space-x-3 pt-2">
                             <button type="button" @click="showModal = false" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
