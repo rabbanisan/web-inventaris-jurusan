@@ -75,6 +75,7 @@ export function useImport({ url, reloadProps = [] }) {
             if (!response.ok) {
                 error.value =
                     payload?.errors?.file?.[0] ??
+                    payload?.errors?.images?.[0] ??
                     payload?.message ??
                     'Gagal mengunggah file.';
 
