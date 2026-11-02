@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SpreadsheetTemplate;
+use App\Imports\RuanganImport;
 use App\Models\Ruangan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Throwable;
 
 class RuanganController extends Controller
 {
@@ -12,6 +15,32 @@ class RuanganController extends Controller
     {
         return Inertia::render('Ruangan/Index', [
             'ruangan' => Ruangan::withCount('barang')->orderBy('nama')->get(),
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:8192'],
+        ], [], ['file' => 'file']);
+
+        try {
+            $result = (new RuanganImport)->importFromUpload($request->file('file'));
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'File tidak dapat dibaca: '.$e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json($result);
+    }
+
+    public function template()
+    {
+        return SpreadsheetTemplate::download('template-import-ruangan.xlsx', [
+            'nama', 'lokasi', 'keterangan',
+        ], [
+            ['Ruang Laboratorium', 'Gedung A Lantai 2', 'Contoh baris, silakan dihapus'],
         ]);
     }
 

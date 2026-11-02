@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useImport } from '@/Composables/useImport';
 
 const props = defineProps({
     barang: Object,
@@ -12,6 +13,25 @@ const props = defineProps({
 
 const showModal = ref(false);
 const editMode = ref(false);
+const showImportModal = ref(false);
+
+const {
+    file: importFile,
+    processing: importProcessing,
+    result: importResult,
+    error: importError,
+    reset: resetImport,
+    onFileChange: onImportFileChange,
+    submit: submitImport,
+} = useImport({
+    url: '/barang/import',
+    reloadProps: ['barang'],
+});
+
+function openImport() {
+    resetImport();
+    showImportModal.value = true;
+}
 
 const form = useForm({
     id: null,
@@ -69,9 +89,14 @@ function destroy(id) {
 
         <div class="mb-4 flex justify-between items-center">
             <div></div>
-            <button @click="openCreate" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                + Tambah Barang
-            </button>
+            <div class="flex items-center space-x-2">
+                <button @click="openImport" class="px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+                    Import Excel
+                </button>
+                <button @click="openCreate" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    + Tambah Barang
+                </button>
+            </div>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -193,6 +218,50 @@ function destroy(id) {
                             <button type="button" @click="showModal = false" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</button>
                             <button type="submit" :disabled="form.processing" class="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
                                 {{ form.processing ? 'Menyimpan...' : 'Simpan' }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Modal Import Excel -->
+        <Teleport to="body">
+            <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center">
+                <div class="absolute inset-0 bg-black/50" @click="showImportModal = false"></div>
+                <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-1">Import Barang dari Excel</h3>
+                    <p class="text-xs text-gray-500 mb-2">
+                        Kolom wajib: <span class="font-mono">kode, nama, kategori, ruangan</span>.
+                        Kolom opsional: <span class="font-mono">jumlah, kondisi, keterangan</span>.
+                        Baris dengan kode yang sudah ada akan diperbarui; kategori &amp; ruangan baru dibuat otomatis.
+                    </p>
+                    <a href="/barang/template" class="inline-block text-sm text-blue-600 hover:text-blue-800 mb-3">
+                        Unduh template Excel
+                    </a>
+                    <form @submit.prevent="submitImport" class="space-y-4">
+                        <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            @change="onImportFileChange"
+                            class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg file:mr-3 file:px-3 file:py-2 file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700"
+                        />
+                        <p v-if="importError" class="text-red-500 text-xs">{{ importError }}</p>
+
+                        <div v-if="importResult" class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+                            <p class="font-medium text-gray-800">
+                                {{ importResult.total }} baris diproses —
+                                dibuat {{ importResult.created }}, diperbarui {{ importResult.updated }}, gagal {{ importResult.failed }}.
+                            </p>
+                            <ul v-if="importResult.errors?.length" class="mt-2 max-h-40 overflow-y-auto list-disc pl-4 space-y-1 text-red-600">
+                                <li v-for="(message, index) in importResult.errors" :key="index">{{ message }}</li>
+                            </ul>
+                        </div>
+
+                        <div class="flex justify-end space-x-3 pt-2">
+                            <button type="button" @click="showImportModal = false" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Tutup</button>
+                            <button type="submit" :disabled="importProcessing || !importFile" class="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                                {{ importProcessing ? 'Mengunggah...' : 'Import' }}
                             </button>
                         </div>
                     </form>

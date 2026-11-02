@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\SpreadsheetTemplate;
+use App\Imports\BarangImport;
 use App\Models\Barang;
 use App\Models\Kategori;
 use App\Models\Ruangan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Throwable;
 
 class BarangController extends Controller
 {
@@ -18,6 +21,32 @@ class BarangController extends Controller
                 ->paginate(15),
             'kategoriList' => Kategori::orderBy('nama')->get(),
             'ruanganList' => Ruangan::orderBy('nama')->get(),
+        ]);
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:8192'],
+        ], [], ['file' => 'file']);
+
+        try {
+            $result = (new BarangImport)->importFromUpload($request->file('file'));
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => 'File tidak dapat dibaca: '.$e->getMessage(),
+            ], 422);
+        }
+
+        return response()->json($result);
+    }
+
+    public function template()
+    {
+        return SpreadsheetTemplate::download('template-import-barang.xlsx', [
+            'kode', 'nama', 'kategori', 'ruangan', 'jumlah', 'kondisi', 'keterangan',
+        ], [
+            ['BRG-001', 'Laptop Asus', 'Elektronik', 'Ruang Laboratorium', 1, 'baik', 'Contoh baris, silakan dihapus'],
         ]);
     }
 

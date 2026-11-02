@@ -34,8 +34,14 @@ Route::middleware('auth')->group(function () {
 
 // Route khusus Petugas Inventaris (Admin)
 Route::middleware(['auth', 'admin'])->group(function () {
+    Route::post('barang/import', [BarangController::class, 'import'])->name('barang.import');
+    Route::get('barang/template', [BarangController::class, 'template'])->name('barang.template');
     Route::resource('barang', BarangController::class)->except(['create', 'show', 'edit']);
+
     Route::resource('kategori', KategoriController::class)->except(['create', 'show', 'edit']);
+
+    Route::post('ruangan/import', [RuanganController::class, 'import'])->name('ruangan.import');
+    Route::get('ruangan/template', [RuanganController::class, 'template'])->name('ruangan.template');
     Route::resource('ruangan', RuanganController::class)->except(['create', 'show', 'edit']);
     Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'update', 'destroy']);
 });
