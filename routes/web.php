@@ -12,14 +12,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', [PublicCatalogController::class, 'index'])->name('catalog.home');
 
 // Katalog publik: siapa pun (tanpa login) dapat melihat barang yang tersedia
 Route::get('/katalog', [PublicCatalogController::class, 'index'])->name('katalog');
