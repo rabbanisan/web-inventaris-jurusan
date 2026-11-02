@@ -67,13 +67,24 @@ class BarangImport extends SpreadsheetImport
             'keterangan' => $keterangan !== '' ? $keterangan : null,
         ];
 
+        $gambar = $this->storeImage($row['gambar'] ?? null, 'barang');
+
         $barang = Barang::where('kode', $kode)->first();
 
         if ($barang) {
+            if ($gambar !== null) {
+                $this->deleteImage($barang->gambar);
+                $attributes['gambar'] = $gambar;
+            }
+
             $barang->update($attributes);
             $this->updated++;
 
             return;
+        }
+
+        if ($gambar !== null) {
+            $attributes['gambar'] = $gambar;
         }
 
         Barang::create(['kode' => $kode] + $attributes);

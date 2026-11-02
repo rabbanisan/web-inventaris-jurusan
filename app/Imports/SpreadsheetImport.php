@@ -5,9 +5,13 @@ namespace App\Imports;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use RuntimeException;
 use Throwable;
+use ZipArchive;
 
 abstract class SpreadsheetImport
 {
@@ -21,6 +25,9 @@ abstract class SpreadsheetImport
 
     /** @var array<int, string> */
     protected array $errors = [];
+
+    /** @var array<string, string> peta nama file (lowercase) => path absolut hasil ekstrak ZIP */
+    protected array $images = [];
 
     /**
      * Nama kolom (setelah normalisasi) yang wajib ada pada baris pertama file.
@@ -37,24 +44,104 @@ abstract class SpreadsheetImport
     abstract protected function processRow(array $row, int $line): void;
 
     /**
-     * Import dari file yang diunggah user.
+     * Import dari file yang diunggah user, opsional bersama ZIP berisi gambar.
      *
      * @return array{total: int, created: int, updated: int, failed: int, errors: array<int, string>}
      */
-    public function importFromUpload(UploadedFile $file): array
+    public function importFromUpload(UploadedFile $file, ?UploadedFile $images = null): array
     {
         $extension = strtolower($file->getClientOriginalExtension() ?: 'xlsx');
         $path = tempnam(sys_get_temp_dir(), 'import-').'.'.$extension;
 
         copy($file->getRealPath(), $path);
 
+        $this->images = [];
+        $imageDirectory = null;
+
         try {
+            if ($images !== null) {
+                $imageDirectory = $this->extractImages($images);
+            }
+
             return $this->import($path);
         } finally {
             if (is_file($path)) {
                 @unlink($path);
             }
+
+            if ($imageDirectory !== null) {
+                $this->removeDirectory($imageDirectory);
+            }
         }
+    }
+
+    /**
+     * Ekstrak ZIP gambar ke direktori sementara lalu simpan peta nama file => path.
+     */
+    private function extractImages(UploadedFile $zip): string
+    {
+        if (! class_exists(ZipArchive::class)) {
+            throw new RuntimeException('ekstensi ZIP tidak tersedia di server.');
+        }
+
+        $directory = sys_get_temp_dir().DIRECTORY_SEPARATOR.'import-images-'.Str::uuid();
+
+        if (! is_dir($directory) && ! mkdir($directory, 0775, true) && ! is_dir($directory)) {
+            throw new RuntimeException('folder sementara untuk gambar tidak dapat dibuat.');
+        }
+
+        $archive = new ZipArchive;
+
+        if ($archive->open($zip->getRealPath()) !== true) {
+            throw new RuntimeException('file ZIP gambar tidak dapat dibuka.');
+        }
+
+        try {
+            for ($index = 0; $index < $archive->numFiles; $index++) {
+                $entry = $archive->getNameIndex($index);
+
+                if ($entry === false || str_ends_with($entry, '/')) {
+                    continue;
+                }
+
+                if (str_contains($entry, '__MACOSX') || str_starts_with(basename($entry), '._')) {
+                    continue;
+                }
+
+                $contents = $archive->getFromIndex($index);
+
+                if ($contents === false) {
+                    continue;
+                }
+
+                $target = $directory.DIRECTORY_SEPARATOR.basename($entry);
+                file_put_contents($target, $contents);
+
+                $this->images[strtolower(basename($entry))] = $target;
+            }
+        } finally {
+            $archive->close();
+        }
+
+        return $directory;
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (! is_dir($directory)) {
+            return;
+        }
+
+        $items = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        foreach ($items as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+
+        @rmdir($directory);
     }
 
     /**
@@ -162,6 +249,39 @@ abstract class SpreadsheetImport
         }
 
         return trim((string) $value);
+    }
+
+    /**
+     * Simpan gambar hasil ekstrak ZIP ke disk public, kembalikan path relatifnya.
+     */
+    protected function storeImage(mixed $value, string $directory): ?string
+    {
+        $name = trim($this->text($value));
+
+        if ($name === '') {
+            return null;
+        }
+
+        $source = $this->images[strtolower(basename($name))] ?? null;
+
+        if ($source === null) {
+            throw new RuntimeException('file gambar "'.$name.'" tidak ditemukan di dalam ZIP.');
+        }
+
+        $extension = strtolower(pathinfo($source, PATHINFO_EXTENSION)) ?: 'jpg';
+        $baseName = Str::slug(pathinfo($name, PATHINFO_FILENAME)) ?: 'gambar';
+        $target = trim($directory, '/').'/'.$baseName.'-'.Str::lower(Str::random(8)).'.'.$extension;
+
+        Storage::disk('public')->put($target, file_get_contents($source));
+
+        return $target;
+    }
+
+    protected function deleteImage(?string $path): void
+    {
+        if ($path !== null && $path !== '') {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function errorMessage(Throwable $e): string

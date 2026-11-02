@@ -28,10 +28,14 @@ class BarangController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:8192'],
-        ], [], ['file' => 'file']);
+            'images' => ['nullable', 'file', 'mimes:zip', 'max:51200'],
+        ], [], ['file' => 'file', 'images' => 'file gambar']);
 
         try {
-            $result = (new BarangImport)->importFromUpload($request->file('file'));
+            $result = (new BarangImport)->importFromUpload(
+                $request->file('file'),
+                $request->file('images'),
+            );
         } catch (Throwable $e) {
             return response()->json([
                 'message' => 'File tidak dapat dibaca: '.$e->getMessage(),
@@ -44,9 +48,9 @@ class BarangController extends Controller
     public function template()
     {
         return SpreadsheetTemplate::download('template-import-barang.xlsx', [
-            'kode', 'nama', 'kategori', 'ruangan', 'jumlah', 'kondisi', 'keterangan',
+            'kode', 'nama', 'kategori', 'ruangan', 'jumlah', 'kondisi', 'keterangan', 'gambar',
         ], [
-            ['BRG-001', 'Laptop Asus', 'Elektronik', 'Ruang Laboratorium', 1, 'baik', 'Contoh baris, silakan dihapus'],
+            ['BRG-001', 'Laptop Asus', 'Elektronik', 'Ruang Laboratorium', 1, 'baik', 'Contoh baris, silakan dihapus', 'laptop-asus.jpg'],
         ]);
     }
 

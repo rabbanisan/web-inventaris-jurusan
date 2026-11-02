@@ -23,6 +23,7 @@ class RuanganImport extends SpreadsheetImport
         $nama = $this->text($row['nama'] ?? null);
         $lokasi = $this->text($row['lokasi'] ?? null);
         $keterangan = $this->text($row['keterangan'] ?? null);
+        $gambar = $this->storeImage($row['gambar'] ?? null, 'ruangan');
 
         if ($nama === '') {
             throw new RuntimeException('kolom "nama" wajib diisi.');
@@ -39,6 +40,7 @@ class RuanganImport extends SpreadsheetImport
                 'nama' => $nama,
                 'lokasi' => $lokasi !== '' ? $lokasi : null,
                 'keterangan' => $keterangan !== '' ? $keterangan : null,
+                'gambar' => $gambar,
             ]);
             $this->created++;
 
@@ -48,7 +50,14 @@ class RuanganImport extends SpreadsheetImport
         $ruangan->fill(array_filter([
             'lokasi' => $lokasi,
             'keterangan' => $keterangan,
-        ], fn ($value) => $value !== ''))->save();
+        ], fn ($value) => $value !== ''));
+
+        if ($gambar !== null) {
+            $this->deleteImage($ruangan->gambar);
+            $ruangan->gambar = $gambar;
+        }
+
+        $ruangan->save();
 
         $this->updated++;
     }

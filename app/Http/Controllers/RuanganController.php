@@ -22,10 +22,14 @@ class RuanganController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:8192'],
-        ], [], ['file' => 'file']);
+            'images' => ['nullable', 'file', 'mimes:zip', 'max:51200'],
+        ], [], ['file' => 'file', 'images' => 'file gambar']);
 
         try {
-            $result = (new RuanganImport)->importFromUpload($request->file('file'));
+            $result = (new RuanganImport)->importFromUpload(
+                $request->file('file'),
+                $request->file('images'),
+            );
         } catch (Throwable $e) {
             return response()->json([
                 'message' => 'File tidak dapat dibaca: '.$e->getMessage(),
@@ -38,9 +42,9 @@ class RuanganController extends Controller
     public function template()
     {
         return SpreadsheetTemplate::download('template-import-ruangan.xlsx', [
-            'nama', 'lokasi', 'keterangan',
+            'nama', 'lokasi', 'keterangan', 'gambar',
         ], [
-            ['Ruang Laboratorium', 'Gedung A Lantai 2', 'Contoh baris, silakan dihapus'],
+            ['Ruang Laboratorium', 'Gedung A Lantai 2', 'Contoh baris, silakan dihapus', 'ruang-lab.jpg'],
         ]);
     }
 

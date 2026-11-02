@@ -17,6 +17,7 @@ const {
     error: importError,
     reset: resetImport,
     onFileChange: onImportFileChange,
+    onZipChange: onImportZipChange,
     submit: submitImport,
 } = useImport({
     url: '/ruangan/import',
@@ -164,12 +165,27 @@ function destroy(id) {
                         Unduh template Excel
                     </a>
                     <form @submit.prevent="submitImport" class="space-y-4">
-                        <input
-                            type="file"
-                            accept=".xlsx,.xls,.csv"
-                            @change="onImportFileChange"
-                            class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg file:mr-3 file:px-3 file:py-2 file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700"
-                        />
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">File Excel / CSV</label>
+                            <input
+                                type="file"
+                                accept=".xlsx,.xls,.csv"
+                                @change="onImportFileChange"
+                                class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg file:mr-3 file:px-3 file:py-2 file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">File Gambar (.zip, opsional)</label>
+                            <input
+                                type="file"
+                                accept=".zip"
+                                @change="onImportZipChange"
+                                class="block w-full text-sm text-gray-700 border border-gray-300 rounded-lg file:mr-3 file:px-3 file:py-2 file:border-0 file:bg-gray-100 file:text-sm file:text-gray-700"
+                            />
+                            <p class="mt-1 text-xs text-gray-500">
+                                Nama file di dalam ZIP harus sama dengan isi kolom <span class="font-mono">gambar</span>.
+                            </p>
+                        </div>
                         <p v-if="importError" class="text-red-500 text-xs">{{ importError }}</p>
 
                         <div v-if="importResult" class="rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">

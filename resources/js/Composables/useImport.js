@@ -9,12 +9,14 @@ function csrfToken() {
 
 export function useImport({ url, reloadProps = [] }) {
     const file = ref(null);
+    const zip = ref(null);
     const processing = ref(false);
     const result = ref(null);
     const error = ref(null);
 
     function reset() {
         file.value = null;
+        zip.value = null;
         processing.value = false;
         result.value = null;
         error.value = null;
@@ -22,6 +24,12 @@ export function useImport({ url, reloadProps = [] }) {
 
     function onFileChange(event) {
         file.value = event.target.files?.[0] ?? null;
+        result.value = null;
+        error.value = null;
+    }
+
+    function onZipChange(event) {
+        zip.value = event.target.files?.[0] ?? null;
         result.value = null;
         error.value = null;
     }
@@ -45,6 +53,10 @@ export function useImport({ url, reloadProps = [] }) {
 
         const data = new FormData();
         data.append('file', file.value);
+
+        if (zip.value) {
+            data.append('images', zip.value);
+        }
 
         try {
             const response = await fetch(url, {
@@ -81,5 +93,5 @@ export function useImport({ url, reloadProps = [] }) {
         }
     }
 
-    return { file, processing, result, error, reset, onFileChange, submit };
+    return { file, zip, processing, result, error, reset, onFileChange, onZipChange, submit };
 }
