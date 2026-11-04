@@ -1,3 +1,4 @@
 @tailwind base;
+/* Enable responsive variants (default in Tailwind v3) */
 @tailwind components;
 @tailwind utilities;

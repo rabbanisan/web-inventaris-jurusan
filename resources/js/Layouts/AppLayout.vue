@@ -35,7 +35,7 @@ function logout() {
         <!-- Sidebar -->
         <aside
             :class="sidebarOpen ? 'w-64' : 'w-16'"
-            class="fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 transition-all duration-300"
+            class="fixed inset-y-0 left-0 z-30 bg-white border-r border-gray-200 transition-all duration-300 hidden md:block"
         >
             <div class="flex items-center h-16 px-4 border-b border-gray-200">
                 <h1
@@ -158,7 +158,7 @@ function logout() {
 
         <!-- Main content -->
         <div
-            :class="sidebarOpen ? 'ml-64' : 'ml-16'"
+            :class="sidebarOpen ? 'md:ml-64' : 'md:ml-16'"
             class="transition-all duration-300"
         >
             <header
