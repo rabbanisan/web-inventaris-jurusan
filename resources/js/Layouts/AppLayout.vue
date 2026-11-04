@@ -186,24 +186,6 @@ function logout() {
                 </div>
             </header>
 
-            <!-- Top navigation bar (navbar) -->
-            <nav class="bg-gray-100 border-b border-gray-200">
-                <div class="flex space-x-4 px-6 py-2">
-                    <Link
-                        v-for="item in navigation"
-                        :key="item.name"
-                        :href="item.href"
-                        :class="[
-                            isActive(item.href)
-                                ? 'text-blue-600 font-medium'
-                                : 'text-gray-600 hover:text-gray-800',
-                            'text-sm',
-                        ]"
-                    >
-                        {{ item.name }}
-                    </Link>
-                </div>
-            </nav>
 
             <main class="p-6">
                 <slot />
