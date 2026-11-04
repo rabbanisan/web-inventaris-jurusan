@@ -29,6 +29,11 @@ class DashboardController extends Controller
                 ->latest()
                 ->take(10)
                 ->get(),
+            // Peminjaman terbaru (10 record terakhir)
+            'peminjamanTerbaru' => \App\Models\Peminjaman::with(['user', 'barang'])
+                ->latest()
+                ->take(10)
+                ->get(),
         ]);
     }
 }
