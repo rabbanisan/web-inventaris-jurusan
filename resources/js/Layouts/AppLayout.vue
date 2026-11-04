@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import { Link, router, usePage } from "@inertiajs/vue3";
 
 const sidebarOpen = ref(true);
+const mobileMenuOpen = ref(false);
 
 const page = usePage();
 
@@ -156,6 +157,37 @@ function logout() {
             </nav>
         </aside>
 
+        <!-- Mobile navigation menu (hamburger) -->
+        <div v-if="mobileMenuOpen" class="fixed inset-0 z-40 bg-white flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                <h2 class="text-lg font-semibold">Menu</h2>
+                <button @click="mobileMenuOpen = false" class="p-2 rounded-lg hover:bg-gray-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <nav class="flex-1 px-2 py-4 space-y-1">
+                <Link
+                    v-for="item in navigation"
+                    :key="item.name"
+                    :href="item.href"
+                    class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                >
+                    {{ item.name }}
+                </Link>
+
+                <button
+                    v-if="user"
+                    @click="logout"
+                    class="w-full text-left px-3 py-2 mt-4 text-red-600 bg-red-50 rounded-md hover:bg-red-100"
+                >
+                    Logout
+                </button>
+            </nav>
+        </div>
+
         <!-- Main content -->
         <div
             :class="sidebarOpen ? 'md:ml-64' : 'md:ml-16'"
@@ -164,6 +196,16 @@ function logout() {
             <header
                 class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6"
             >
+                <!-- Hamburger button for mobile -->
+                <button
+                    @click="mobileMenuOpen = true"
+                    class="md:hidden p-2 rounded-lg hover:bg-gray-100"
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
                 <h2 class="text-lg font-semibold text-gray-800">
                     <slot name="header" />
                 </h2>
@@ -179,7 +221,7 @@ function logout() {
                     <button
                         v-if="user"
                         @click="logout"
-                        class="px-3 py-1.5 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                        class="px-3 py-1.5 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors hidden md:block"
                     >
                         Logout
                     </button>
