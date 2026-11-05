@@ -18,6 +18,7 @@ const navigation = computed(() => [
               { name: "Kategori", href: "/kategori", icon: "category" },
               { name: "Ruangan", href: "/ruangan", icon: "room" },
               { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
+              { name: "Kelola User", href: "/admin/users", icon: "dashboard" },
           ]
         : []),
 ]);
