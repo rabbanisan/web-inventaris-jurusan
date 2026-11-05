@@ -6,6 +6,7 @@ use App\Http\Requests\PeminjamanStoreRequest;
 use App\Http\Requests\PeminjamanUpdateRequest;
 use App\Models\Barang;
 use App\Models\Peminjaman;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -33,20 +34,24 @@ class PeminjamanController extends Controller
     {
         $validated = $request->validated();
 
-        $barang = Barang::findOrFail($validated['barang_id']);
-        if ($validated['jumlah'] > $barang->jumlah) {
-            throw ValidationException::withMessages([
-                'jumlah' => 'Stok tidak mencukupi.',
-            ]);
-        }
+        DB::transaction(function () use ($validated, $request) {
+            // lockForUpdate mencegah dua request bersamaan lolos cek stok yang sama.
+            $barang = Barang::lockForUpdate()->findOrFail($validated['barang_id']);
 
-        // Kurangi stok sementara (bisa di‑adjust saat status berubah)
-        $barang->decrement('jumlah', $validated['jumlah']);
+            if ($validated['jumlah'] > $barang->jumlah) {
+                throw ValidationException::withMessages([
+                    'jumlah' => 'Stok tidak mencukupi.',
+                ]);
+            }
 
-        Peminjaman::create(array_merge($validated, [
-            'user_id' => $request->user()->id,
-            'status'  => 'pending',
-        ]));
+            // Kurangi stok sementara (bisa di‑adjust saat status berubah)
+            $barang->decrement('jumlah', $validated['jumlah']);
+
+            Peminjaman::create(array_merge($validated, [
+                'user_id' => $request->user()->id,
+                'status'  => 'pending',
+            ]));
+        });
 
         return redirect()->back();
     }
@@ -58,25 +63,37 @@ class PeminjamanController extends Controller
     {
         $validated = $request->validated();
 
-        $statusMenahanStok = ['pending', 'approved'];
-        $duluMenahanStok = in_array($peminjaman->status, $statusMenahanStok, true);
-        $kiniMenahanStok = in_array($validated['status'], $statusMenahanStok, true);
+        DB::transaction(function () use ($validated, $peminjaman) {
+            $statusMenahanStok = ['pending', 'approved'];
+            $statusBaru = $validated['status'] ?? $peminjaman->status;
 
-        if ($duluMenahanStok && ! $kiniMenahanStok) {
-            // Status menjadi returned/rejected → stok dikembalikan
-            $peminjaman->barang->increment('jumlah', $peminjaman->jumlah);
-        } elseif (! $duluMenahanStok && $kiniMenahanStok) {
-            // Peminjaman diaktifkan kembali → stok harus masih cukup
-            if ($peminjaman->barang->jumlah < $peminjaman->jumlah) {
+            $duluMenahanStok = in_array($peminjaman->status, $statusMenahanStok, true);
+            $kiniMenahanStok = in_array($statusBaru, $statusMenahanStok, true);
+
+            $barang = $peminjaman->barang()->lockForUpdate()->first();
+
+            if (! $barang) {
                 throw ValidationException::withMessages([
-                    'status' => 'Stok barang tidak mencukupi untuk mengaktifkan kembali peminjaman ini.',
+                    'status' => 'Barang untuk peminjaman ini sudah tidak ada.',
                 ]);
             }
 
-            $peminjaman->barang->decrement('jumlah', $peminjaman->jumlah);
-        }
+            if ($duluMenahanStok && ! $kiniMenahanStok) {
+                // Status menjadi returned/rejected → stok dikembalikan
+                $barang->increment('jumlah', $peminjaman->jumlah);
+            } elseif (! $duluMenahanStok && $kiniMenahanStok) {
+                // Peminjaman diaktifkan kembali → stok harus masih cukup
+                if ($barang->jumlah < $peminjaman->jumlah) {
+                    throw ValidationException::withMessages([
+                        'status' => 'Stok barang tidak mencukupi untuk mengaktifkan kembali peminjaman ini.',
+                    ]);
+                }
 
-        $peminjaman->update($validated);
+                $barang->decrement('jumlah', $peminjaman->jumlah);
+            }
+
+            $peminjaman->update($validated);
+        });
 
         return redirect()->back();
     }
@@ -88,13 +105,18 @@ class PeminjamanController extends Controller
      */
     public function approve(Peminjaman $peminjaman)
     {
-        if ($peminjaman->status !== 'pending') {
-            throw ValidationException::withMessages([
-                'status' => 'Hanya peminjaman berstatus pending yang dapat disetujui.',
-            ]);
-        }
+        DB::transaction(function () use ($peminjaman) {
+            // Baca ulang dengan row lock agar dua admin tidak memproses data yang sama.
+            $peminjaman = Peminjaman::lockForUpdate()->findOrFail($peminjaman->id);
 
-        $peminjaman->update(['status' => 'approved']);
+            if ($peminjaman->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya peminjaman berstatus pending yang dapat disetujui.',
+                ]);
+            }
+
+            $peminjaman->update(['status' => 'approved']);
+        });
 
         return redirect()->back();
     }
@@ -104,14 +126,19 @@ class PeminjamanController extends Controller
      */
     public function reject(Peminjaman $peminjaman)
     {
-        if (! in_array($peminjaman->status, ['pending', 'approved'], true)) {
-            throw ValidationException::withMessages([
-                'status' => 'Peminjaman ini sudah selesai diproses.',
-            ]);
-        }
+        DB::transaction(function () use ($peminjaman) {
+            $peminjaman = Peminjaman::lockForUpdate()->findOrFail($peminjaman->id);
 
-        $peminjaman->barang->increment('jumlah', $peminjaman->jumlah);
-        $peminjaman->update(['status' => 'rejected']);
+            if (! in_array($peminjaman->status, ['pending', 'approved'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Peminjaman ini sudah selesai diproses.',
+                ]);
+            }
+
+            $peminjaman->barang()->lockForUpdate()->first()?->increment('jumlah', $peminjaman->jumlah);
+
+            $peminjaman->update(['status' => 'rejected']);
+        });
 
         return redirect()->back();
     }
@@ -121,12 +148,16 @@ class PeminjamanController extends Controller
      */
     public function destroy(Peminjaman $peminjaman)
     {
-        // Kembalikan stok hanya bila peminjaman masih menahan stok
-        if (in_array($peminjaman->status, ['pending', 'approved'], true)) {
-            $peminjaman->barang->increment('jumlah', $peminjaman->jumlah);
-        }
+        DB::transaction(function () use ($peminjaman) {
+            $peminjaman = Peminjaman::lockForUpdate()->findOrFail($peminjaman->id);
 
-        $peminjaman->delete();
+            // Kembalikan stok hanya bila peminjaman masih menahan stok
+            if (in_array($peminjaman->status, ['pending', 'approved'], true)) {
+                $peminjaman->barang()->lockForUpdate()->first()?->increment('jumlah', $peminjaman->jumlah);
+            }
+
+            $peminjaman->delete();
+        });
 
         return redirect()->back();
     }

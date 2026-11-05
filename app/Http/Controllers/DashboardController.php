@@ -6,12 +6,16 @@ use App\Models\Barang;
 use App\Models\Kategori;
 use App\Models\Peminjaman;
 use App\Models\Ruangan;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
-    public function __invoke()
+    public function __invoke(Request $request)
     {
+        $user = $request->user();
+        $isAdmin = $user?->isAdmin() ?? false;
+
         return Inertia::render('Dashboard', [
             // Jumlah record barang (jenis entri barang)
             'totalBarang' => Barang::count(),
@@ -29,8 +33,10 @@ class DashboardController extends Controller
                 ->latest()
                 ->take(10)
                 ->get(),
-            // Peminjaman terbaru (10 record terakhir)
-            'peminjamanTerbaru' => \App\Models\Peminjaman::with(['user', 'barang'])
+            // Admin melihat semua; user biasa hanya melihat pengajuannya sendiri
+            // agar data peminjaman pengguna lain tidak bocor.
+            'peminjamanTerbaru' => Peminjaman::with(['user', 'barang'])
+                ->when(! $isAdmin, fn ($query) => $query->where('user_id', $user->id))
                 ->latest()
                 ->take(10)
                 ->get(),

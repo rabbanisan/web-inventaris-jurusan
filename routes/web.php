@@ -7,9 +7,7 @@ use App\Http\Controllers\PeminjamanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicCatalogController;
 use App\Http\Controllers\RuanganController;
-// use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 
 Route::get('/', [PublicCatalogController::class, 'index'])->name('catalog.home');
@@ -18,7 +16,7 @@ Route::get('/', [PublicCatalogController::class, 'index'])->name('catalog.home')
 Route::get('/katalog', [PublicCatalogController::class, 'index'])->name('katalog');
 
 Route::get('/dashboard', DashboardController::class)
-    ->middleware(['auth', 'verified'])
+    ->middleware('auth')
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {

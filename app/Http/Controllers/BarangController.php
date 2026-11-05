@@ -87,7 +87,9 @@ class BarangController extends Controller
             'kategori_id' => 'required|exists:kategoris,id',
             'ruangan_id' => 'required|exists:ruangans,id',
             'kondisi' => 'required|in:baik,rusak_ringan,rusak_berat',
-            'jumlah' => 'required|integer|min:1',
+            // min:0 karena stok bisa 0 saat semua unit sedang dipinjam;
+            // admin tetap harus bisa menyunting data barang tersebut.
+            'jumlah' => 'required|integer|min:0',
             'keterangan' => 'nullable|string',
             'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'hapus_gambar' => ['nullable', 'boolean'],
@@ -102,6 +104,9 @@ class BarangController extends Controller
             $this->hapusFileGambar($barang);
             $validated['gambar'] = null;
         }
+
+        // hapus_gambar hanya penanda untuk controller, bukan kolom di tabel barangs.
+        unset($validated['hapus_gambar']);
 
         $barang->update($validated);
 

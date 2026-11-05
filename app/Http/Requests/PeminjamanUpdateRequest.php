@@ -62,11 +62,18 @@ class PeminjamanUpdateRequest extends FormRequest
                 $validator->errors()->add('status', 'Tidak dapat langsung mengembalikan peminjaman yang masih pending.');
             }
 
-            // Saat approve, pastikan stok masih cukup
-            if ($old !== 'approved' && $new === 'approved') {
-                if ($peminjaman->barang->jumlah < $peminjaman->jumlah) {
-                    $validator->errors()->add('status', 'Stok barang tidak mencukupi untuk meng‑approve peminjaman ini.');
-                }
+            // Stok hanya perlu dicek saat peminjaman diaktifkan kembali dari status
+            // yang sudah tidak menahan stok. Transisi pending -> approved TIDAK
+            // mengubah stok, karena stok sudah dipotong saat pengajuan dibuat.
+            $statusMenahanStok = ['pending', 'approved'];
+
+            if (
+                ! in_array($old, $statusMenahanStok, true)
+                && in_array($new, $statusMenahanStok, true)
+                && $peminjaman->barang
+                && $peminjaman->barang->jumlah < $peminjaman->jumlah
+            ) {
+                $validator->errors()->add('status', 'Stok barang tidak mencukupi untuk meng‑approve peminjaman ini.');
             }
         });
     }
