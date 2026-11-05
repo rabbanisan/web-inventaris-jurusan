@@ -10,21 +10,27 @@ const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
 const isAdmin = computed(() => user.value?.role === "admin");
 
-const navigation = computed(() => [
-    { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
-    ...(isAdmin.value
-        ? [
-              { name: "Barang", href: "/barang", icon: "inventory" },
-              { name: "Kategori", href: "/kategori", icon: "category" },
-              { name: "Ruangan", href: "/ruangan", icon: "room" },
-              { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
-              { name: "Kelola User", href: "/admin/users", icon: "user" },
-          ]
-        : []),
-]);
+const navigation = computed(() => {
+    // User biasa (peminjam) hanya punya halaman home pribadi,
+    // sedangkan Petugas Inventaris memakai dashboard & menu admin.
+    if (!isAdmin.value) {
+        return [{ name: "Home", href: "/home", icon: "dashboard" }];
+    }
+
+    return [
+        { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
+        { name: "Barang", href: "/barang", icon: "inventory" },
+        { name: "Kategori", href: "/kategori", icon: "category" },
+        { name: "Ruangan", href: "/ruangan", icon: "room" },
+        { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
+        { name: "Kelola User", href: "/admin/users", icon: "user" },
+    ];
+});
 
 function isActive(href) {
-    return page.url.startsWith(href);
+    // "/home" tidak boleh dianggap aktif saat berada di "/home/..." lain,
+    // dan "/dashboard" tidak boleh match ke route lain yang mirip.
+    return page.url === href || page.url.startsWith(`${href}/`);
 }
 
 function logout() {
