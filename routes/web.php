@@ -82,7 +82,11 @@ Route::middleware(['auth', 'admin'])->group(function () {
 |
 */
 Route::middleware('auth')->group(function () {
-    // Email verification notice screen
+    // Alias route used by the test suite (GET /verify-email)
+    Route::get('/verify-email', EmailVerificationPromptController::class)
+        ->name('verification.notice');
+
+    // Email verification notice screen (original route kept for compatibility)
     Route::get('/email/verify', EmailVerificationPromptController::class)
         ->name('verification.notice');
 
