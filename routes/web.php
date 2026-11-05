@@ -8,6 +8,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicCatalogController;
 use App\Http\Controllers\RuanganController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\VerifyEmailController;
+use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -66,6 +69,32 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
     Route::delete('admin/users/{user}', [UserManagementController::class, 'destroy'])
         ->name('admin.users.destroy');
+});
+
+/*
+|---------------------------------------------------------------------------
+| Email Verification Routes
+|---------------------------------------------------------------------------
+|
+| These routes handle the email verification flow for users who must verify
+| their email address after registration. They are protected by the
+| 'auth' middleware and use the controllers we just created.
+|
+*/
+Route::middleware('auth')->group(function () {
+    // Email verification notice screen
+    Route::get('/email/verify', EmailVerificationPromptController::class)
+        ->name('verification.notice');
+
+    // Email verification handler
+    Route::get('/email/verify/{id}/{hash}', VerifyEmailController::class)
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+
+    // Resend verification email
+    Route::post('/email/verification-notification', EmailVerificationNotificationController::class)
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
 });
 
 require __DIR__ . '/auth.php';
