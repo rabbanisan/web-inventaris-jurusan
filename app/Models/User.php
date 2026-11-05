@@ -10,7 +10,9 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'email', 'password', 'role'])] // <-- Tambahkan 'role' di sini
+// 'role' sengaja TIDAK fillable: registrasi publik tidak boleh bisa
+// menaikkan hak akses. Set role secara eksplisit (lihat AdminUserSeeder).
+#[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

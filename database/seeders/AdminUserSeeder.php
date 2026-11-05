@@ -10,22 +10,33 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@inventaris.ac.id'],
-            [
-                'name' => 'Petugas Inventaris',
-                'password' => Hash::make('password123'),
-                'role' => 'admin',
-            ]
+        $this->seedUser(
+            'admin@inventaris.ac.id',
+            'Petugas Inventaris',
+            'admin',
         );
 
-        User::updateOrCreate(
-            ['email' => 'user@inventaris.ac.id'],
-            [
-                'name' => 'User biasa / Mahasiswa',
-                'password' => Hash::make('password123'),
-                'role' => 'user',
-            ]
+        $this->seedUser(
+            'user@inventaris.ac.id',
+            'User biasa / Mahasiswa',
+            'user',
         );
+    }
+
+    /**
+     * Buat/perbarui user tanpa mass assignment.
+     *
+     * `role` tidak fillable (lihat App\Models\User), jadi wajib di-set
+     * lewat forceFill() agar tetap bisa diisi dari seeder.
+     */
+    private function seedUser(string $email, string $name, string $role): void
+    {
+        $user = User::firstOrNew(['email' => $email]);
+
+        $user->forceFill([
+            'name' => $name,
+            'password' => Hash::make('password123'),
+            'role' => $role,
+        ])->save();
     }
 }
