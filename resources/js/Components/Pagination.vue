@@ -1,5 +1,5 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { Link } from "@inertiajs/vue3";
 
 const props = defineProps({
     links: Array,
@@ -7,7 +7,7 @@ const props = defineProps({
 </script>
 
 <template>
-    <nav class="flex items-center space-x-2">
+    <nav class="flex items-center justify-center space-x-2">
         <template v-for="link in links" :key="link.label">
             <Link
                 v-if="!link.active && link.url"

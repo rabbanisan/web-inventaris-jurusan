@@ -18,7 +18,7 @@ const navigation = computed(() => [
               { name: "Kategori", href: "/kategori", icon: "category" },
               { name: "Ruangan", href: "/ruangan", icon: "room" },
               { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
-              { name: "Kelola User", href: "/admin/users", icon: "dashboard" },
+              { name: "Kelola User", href: "/admin/users", icon: "user" },
           ]
         : []),
 ]);
@@ -152,6 +152,21 @@ function logout() {
                                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012 2h2a2 2 0 012-2M9 5h6"
                             />
                         </svg>
+                        <!-- User icon -->
+                        <svg
+                            v-else-if="item.icon === 'user'"
+                            class="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
+                        </svg>
                     </span>
                     <span v-if="sidebarOpen" class="ml-3">{{ item.name }}</span>
                 </Link>
@@ -159,13 +174,30 @@ function logout() {
         </aside>
 
         <!-- Mobile navigation menu (hamburger) -->
-        <div v-if="mobileMenuOpen" class="fixed inset-0 z-40 bg-white flex flex-col">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+        <div
+            v-if="mobileMenuOpen"
+            class="fixed inset-0 z-40 bg-white flex flex-col"
+        >
+            <div
+                class="flex items-center justify-between px-4 py-3 border-b border-gray-200"
+            >
                 <h2 class="text-lg font-semibold">Menu</h2>
-                <button @click="mobileMenuOpen = false" class="p-2 rounded-lg hover:bg-gray-100">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M6 18L18 6M6 6l12 12"/>
+                <button
+                    @click="mobileMenuOpen = false"
+                    class="p-2 rounded-lg hover:bg-gray-100"
+                >
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        />
                     </svg>
                 </button>
             </div>
@@ -202,9 +234,18 @@ function logout() {
                     @click="mobileMenuOpen = true"
                     class="md:hidden p-2 rounded-lg hover:bg-gray-100"
                 >
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4 6h16M4 12h16M4 18h16"/>
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16"
+                        />
                     </svg>
                 </button>
                 <h2 class="text-lg font-semibold text-gray-800">
@@ -228,7 +269,6 @@ function logout() {
                     </button>
                 </div>
             </header>
-
 
             <main class="p-6">
                 <slot />
