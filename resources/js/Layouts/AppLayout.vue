@@ -11,12 +11,15 @@ const user = computed(() => page.props.auth?.user ?? null);
 const isAdmin = computed(() => user.value?.role === "admin");
 
 const navigation = computed(() => {
-    // User biasa (peminjam) hanya punya halaman home pribadi,
-    // sedangkan Petugas Inventaris memakai dashboard & menu admin.
+    // User biasa (peminjam): dashboard pribadi + katalog barang.
     if (!isAdmin.value) {
-        return [{ name: "Home", href: "/home", icon: "dashboard" }];
+        return [
+            { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
+            { name: "Catalog", href: "/user/katalog", icon: "inventory" },
+        ];
     }
 
+    // Petugas Inventaris (admin)
     return [
         { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
         { name: "Barang", href: "/barang", icon: "inventory" },
@@ -28,12 +31,17 @@ const navigation = computed(() => {
 });
 
 function isActive(href) {
-    // "/home" tidak boleh dianggap aktif saat berada di "/home/..." lain,
-    // dan "/dashboard" tidak boleh match ke route lain yang mirip.
-    return page.url === href || page.url.startsWith(`${href}/`);
+    // Buang query string (?page=2, ?search=...) supaya menu tetap aktif
+    const path = page.url.split("?")[0];
+    return path === href || path.startsWith(`${href}/`);
+}
+
+function closeMobileMenu() {
+    mobileMenuOpen.value = false;
 }
 
 function logout() {
+    mobileMenuOpen.value = false;
     router.post(route("logout"));
 }
 </script>
@@ -54,6 +62,7 @@ function logout() {
                 </h1>
                 <button
                     @click="sidebarOpen = !sidebarOpen"
+                    aria-label="Buka/tutup sidebar"
                     class="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
                 >
                     <svg
@@ -76,6 +85,7 @@ function logout() {
                     v-for="item in navigation"
                     :key="item.name"
                     :href="item.href"
+                    :title="sidebarOpen ? undefined : item.name"
                     :class="[
                         isActive(item.href)
                             ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
@@ -142,7 +152,6 @@ function logout() {
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                             />
                         </svg>
-
                         <!-- Clipboard icon for Peminjaman -->
                         <svg
                             v-else-if="item.icon === 'clipboard'"
@@ -189,7 +198,8 @@ function logout() {
             >
                 <h2 class="text-lg font-semibold">Menu</h2>
                 <button
-                    @click="mobileMenuOpen = false"
+                    @click="closeMobileMenu"
+                    aria-label="Tutup menu"
                     class="p-2 rounded-lg hover:bg-gray-100"
                 >
                     <svg
@@ -212,7 +222,13 @@ function logout() {
                     v-for="item in navigation"
                     :key="item.name"
                     :href="item.href"
-                    class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                    @click="closeMobileMenu"
+                    :class="[
+                        isActive(item.href)
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-100',
+                        'block px-3 py-2 rounded-md text-base font-medium',
+                    ]"
                 >
                     {{ item.name }}
                 </Link>
@@ -238,6 +254,7 @@ function logout() {
                 <!-- Hamburger button for mobile -->
                 <button
                     @click="mobileMenuOpen = true"
+                    aria-label="Buka menu"
                     class="md:hidden p-2 rounded-lg hover:bg-gray-100"
                 >
                     <svg

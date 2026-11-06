@@ -14,7 +14,9 @@ class DashboardController extends Controller
     public function __invoke(Request $request)
     {
         $user = $request->user();
+        // dd($user->role, $user->isAdmin());
 
+        // User biasa (peminjam) mendapat dashboard sendiri
         if (! $user->isAdmin()) {
             return $this->userDashboard($user);
         }
@@ -39,6 +41,7 @@ class DashboardController extends Controller
 
     private function userDashboard($user)
     {
+        // dd('cabang user jalan');
         $milik = Peminjaman::where('user_id', $user->id);
 
         return Inertia::render('User/Dashboard', [
