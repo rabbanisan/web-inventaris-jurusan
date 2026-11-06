@@ -19,39 +19,50 @@ Route::get('/', [PublicCatalogController::class, 'index'])->name('catalog.home')
 // Katalog publik: siapa pun (tanpa login) dapat melihat barang yang tersedia
 Route::get('/katalog', [PublicCatalogController::class, 'index'])->name('katalog');
 
+// Dashboard dipakai bersama: DashboardController merender halaman
+// berbeda untuk admin (Dashboard) dan user biasa (User/Dashboard).
 Route::get('/dashboard', DashboardController::class)
     ->middleware('auth')
     ->name('dashboard');
+
+// Link lama ke /home diarahkan ke dashboard agar tidak 404
+Route::redirect('/home', '/dashboard')->middleware('auth');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Katalog untuk user yang sudah login (tampil di dalam layout sidebar)
+    Route::get('/user/katalog', [PublicCatalogController::class, 'index'])->name('user.katalog');
+
     // User biasa (peminjam) boleh mengajukan peminjaman, admin tetap bisa lewat grup di bawah
     Route::post('/peminjaman', [PeminjamanController::class, 'store'])->name('peminjaman.store');
 });
 
-// Route khusus Petugas Inventaris (Admin)
+// -------------------------------------------------------------------
+// Route khusus Petugas Inventaris (Admin) – role "admin"
+// -------------------------------------------------------------------
 Route::middleware(['auth', 'admin'])->group(function () {
+    // Barang
     Route::post('barang/import', [BarangController::class, 'import'])->name('barang.import');
     Route::get('barang/template', [BarangController::class, 'template'])->name('barang.template');
     Route::resource('barang', BarangController::class)->except(['create', 'show', 'edit']);
 
+    // Kategori
     Route::resource('kategori', KategoriController::class)->except(['create', 'show', 'edit']);
 
+    // Ruangan
     Route::post('ruangan/import', [RuanganController::class, 'import'])->name('ruangan.import');
     Route::get('ruangan/template', [RuanganController::class, 'template'])->name('ruangan.template');
     Route::resource('ruangan', RuanganController::class)->except(['create', 'show', 'edit']);
+
+    // Peminjaman
     Route::patch('peminjaman/{peminjaman}/approve', [PeminjamanController::class, 'approve'])->name('peminjaman.approve');
     Route::patch('peminjaman/{peminjaman}/reject', [PeminjamanController::class, 'reject'])->name('peminjaman.reject');
     Route::resource('peminjaman', PeminjamanController::class)->only(['index', 'update', 'destroy']);
-});
 
-// -------------------------------------------------------------------
-// Admin routes – hanya dapat diakses oleh user dengan role "admin"
-// -------------------------------------------------------------------
-Route::middleware(['auth', 'admin'])->group(function () {
+    // Kelola user
     Route::get('admin/users', [UserManagementController::class, 'index'])
         ->name('admin.users.index');
 
@@ -82,9 +93,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
 |
 */
 Route::middleware('auth')->group(function () {
-    // Alias route used by the test suite (GET /verify-email)
+    // Alias route used by the test suite (GET /verify-email).
+    // Diberi nama berbeda agar tidak menimpa 'verification.notice'.
     Route::get('/verify-email', EmailVerificationPromptController::class)
-        ->name('verification.notice');
+        ->name('verification.notice.alias');
 
     // Email verification notice screen (original route kept for compatibility)
     Route::get('/email/verify', EmailVerificationPromptController::class)

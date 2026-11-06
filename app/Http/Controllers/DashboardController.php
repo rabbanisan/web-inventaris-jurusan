@@ -14,29 +14,39 @@ class DashboardController extends Controller
     public function __invoke(Request $request)
     {
         $user = $request->user();
-        $isAdmin = $user?->isAdmin() ?? false;
+
+        if (! $user->isAdmin()) {
+            return $this->userDashboard($user);
+        }
 
         return Inertia::render('Dashboard', [
-            // Jumlah record barang (jenis entri barang)
             'totalBarang' => Barang::count(),
-            // Total unit fisik dari seluruh barang
             'totalUnitBarang' => (int) Barang::sum('jumlah'),
-            // Jenis data (kategori)
             'totalKategori' => Kategori::count(),
-            // Jumlah ruangan
             'totalRuangan' => Ruangan::count(),
-            // Unit yang sedang dipinjam (status approved)
             'totalDipinjam' => (int) Peminjaman::where('status', 'approved')->sum('jumlah'),
-            // Pengajuan yang menunggu persetujuan
             'peminjamanPending' => Peminjaman::where('status', 'pending')->count(),
             'barangTerbaru' => Barang::with(['kategori', 'ruangan'])
                 ->latest()
                 ->take(10)
                 ->get(),
-            // Admin melihat semua; user biasa hanya melihat pengajuannya sendiri
-            // agar data peminjaman pengguna lain tidak bocor.
             'peminjamanTerbaru' => Peminjaman::with(['user', 'barang'])
-                ->when(! $isAdmin, fn ($query) => $query->where('user_id', $user->id))
+                ->latest()
+                ->take(10)
+                ->get(),
+        ]);
+    }
+
+    private function userDashboard($user)
+    {
+        $milik = Peminjaman::where('user_id', $user->id);
+
+        return Inertia::render('User/Dashboard', [
+            'totalPeminjaman' => (clone $milik)->count(),
+            'peminjamanPending' => (clone $milik)->where('status', 'pending')->count(),
+            'sedangDipinjam' => (int) (clone $milik)->where('status', 'approved')->sum('jumlah'),
+            'peminjamanTerbaru' => (clone $milik)
+                ->with('barang:id,kode,nama')
                 ->latest()
                 ->take(10)
                 ->get(),
