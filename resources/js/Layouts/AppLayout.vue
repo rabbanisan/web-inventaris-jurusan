@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Link, router, usePage } from "@inertiajs/vue3";
 
 const sidebarOpen = ref(true);
@@ -44,6 +44,30 @@ function logout() {
     mobileMenuOpen.value = false;
     router.post(route("logout"));
 }
+
+// Banner flash message (success / error) dari session Laravel
+const flashMessage = ref(null); // { type: 'success' | 'error', text: string }
+let flashTimer;
+
+function dismissFlash() {
+    clearTimeout(flashTimer);
+    flashMessage.value = null;
+}
+
+watch(
+    () => [page.props.flash?.success, page.props.flash?.error],
+    ([success, error]) => {
+        const text = error || success;
+        if (!text) return; // jangan hapus banner saat navigasi tanpa flash baru
+
+        flashMessage.value = { type: error ? "error" : "success", text };
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(dismissFlash, 5000);
+    },
+    { immediate: true },
+);
+
+onBeforeUnmount(() => clearTimeout(flashTimer));
 </script>
 
 <template>
@@ -294,6 +318,40 @@ function logout() {
             </header>
 
             <main class="p-6">
+                <!-- Flash message -->
+                <div
+                    v-if="flashMessage"
+                    role="status"
+                    :class="
+                        flashMessage.type === 'error'
+                            ? 'border-red-200 bg-red-50 text-red-800'
+                            : 'border-green-200 bg-green-50 text-green-800'
+                    "
+                    class="mx-auto mb-4 flex max-w-5xl items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm"
+                >
+                    <span>{{ flashMessage.text }}</span>
+                    <button
+                        type="button"
+                        @click="dismissFlash"
+                        aria-label="Tutup pesan"
+                        class="flex-shrink-0 opacity-60 hover:opacity-100"
+                    >
+                        <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
+                </div>
+
                 <slot />
             </main>
         </div>
