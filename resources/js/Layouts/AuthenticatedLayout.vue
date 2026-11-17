@@ -61,6 +61,12 @@ const showingNavigationDropdown = ref(false);
                                     >
                                         Ruangan
                                     </NavLink>
+                                    <NavLink
+                                        :href="route('admin.users.index')"
+                                        :active="route().current('admin.users.*')"
+                                    >
+                                        Kelola User
+                                    </NavLink>
                                 </template>
                             </div>
                         </div>
@@ -94,6 +100,12 @@ const showingNavigationDropdown = ref(false);
                                     </template>
 
                                     <template #content>
+                                        <DropdownLink
+                                            v-if="$page.props.auth.user.role === 'admin'"
+                                            :href="route('admin.users.index')"
+                                        >
+                                            Kelola User
+                                        </DropdownLink>
                                         <DropdownLink
                                             :href="route('profile.edit')"
                                         >
@@ -204,6 +216,13 @@ const showingNavigationDropdown = ref(false);
                         </div>
 
                         <div class="mt-3 space-y-1">
+                            <ResponsiveNavLink
+                                v-if="$page.props.auth.user.role === 'admin'"
+                                :href="route('admin.users.index')"
+                                :active="route().current('admin.users.*')"
+                            >
+                                Kelola User
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('profile.edit')">
                                 Profile
                             </ResponsiveNavLink>

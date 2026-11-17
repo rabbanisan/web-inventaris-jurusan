@@ -1,5 +1,5 @@
 <script setup>
-import { Link, useForm } from "@inertiajs/vue3";
+import { Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import Pagination from "@/Components/Pagination.vue";
 
@@ -10,7 +10,7 @@ const props = defineProps({
 function destroy(id) {
     if (!confirm("Delete this user?")) return;
 
-    useForm().delete(route("admin.users.destroy", id), {
+    router.delete(route("admin.users.destroy", id), {
         preserveScroll: true,
     });
 }
@@ -25,6 +25,19 @@ function destroy(id) {
         </template>
 
         <div class="py-6">
+            <div
+                v-if="$page.props.flash?.success"
+                class="mb-4 rounded bg-green-100 px-4 py-2 text-sm text-green-800"
+            >
+                {{ $page.props.flash.success }}
+            </div>
+            <div
+                v-if="$page.props.flash?.error"
+                class="mb-4 rounded bg-red-100 px-4 py-2 text-sm text-red-800"
+            >
+                {{ $page.props.flash.error }}
+            </div>
+
             <Link
                 :href="route('admin.users.create')"
                 class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"

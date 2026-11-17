@@ -42,9 +42,19 @@ class UserManagementController extends Controller
             'role'     => 'required|in:admin,user',
         ]);
 
-        $data['password'] = bcrypt($data['password']);
+        $user = User::create([
+            'name'     => $data['name'],
+            'email'    => $data['email'],
+            'password' => $data['password'], // cast 'hashed' di model yang meng-hash
+        ]);
 
-        User::create($data);
+        // 'role' TIDAK fillable (lihat App\Models\User) → wajib forceFill(),
+        // kalau tidak, role dibuang diam-diam dan jatuh ke default 'user'.
+        // email_verified_at diisi karena akun ini dibuat admin, bukan didaftarkan sendiri.
+        $user->forceFill([
+            'role'              => $data['role'],
+            'email_verified_at' => now(),
+        ])->save();
 
         return redirect()->route('admin.users.index')
                          ->with('success', 'User created successfully.');
@@ -66,19 +76,26 @@ class UserManagementController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'role'  => 'required|in:admin,user',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email,' . $user->id,
+            'role'     => 'required|in:admin,user',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 
-        if (!empty($data['password'])) {
-            $data['password'] = bcrypt($data['password']);
-        } else {
-            unset($data['password']);
+        // Cegah admin mengunci dirinya sendiri di luar panel admin.
+        if (auth()->id() === $user->id && $data['role'] !== 'admin') {
+            return back()->with('error', 'Anda tidak dapat menurunkan role akun Anda sendiri.');
         }
 
-        $user->update($data);
+        $role = $data['role'];
+        unset($data['role']); // bukan fillable → dipisah, di-set lewat forceFill()
+
+        if (empty($data['password'])) {
+            unset($data['password']); // '' sudah jadi null oleh ConvertEmptyStringsToNull
+        }
+
+        $user->update($data); // hanya name, email, (password)
+        $user->forceFill(['role' => $role])->save();
 
         return redirect()->route('admin.users.index')
                          ->with('success', 'User updated successfully.');
