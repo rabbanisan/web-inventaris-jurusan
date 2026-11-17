@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminUserManagementTest extends TestCase
@@ -40,7 +41,9 @@ class AdminUserManagementTest extends TestCase
             'email'                 => 'newuser@example.com',
             'password'              => 'secret123',
             'password_confirmation' => 'secret123',
-            'role'                  => 'user',
+            // Sengaja 'admin': nilai default kolom adalah 'user', sehingga
+            // regresi "role dibuang oleh mass assignment" langsung terlihat.
+            'role'                  => 'admin',
         ];
 
         $this->actingAs($admin)
@@ -49,7 +52,53 @@ class AdminUserManagementTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'newuser@example.com',
-            'role'  => 'user',
+            'role'  => 'admin',
         ]);
+
+        $created = User::where('email', 'newuser@example.com')->firstOrFail();
+        $this->assertTrue(Hash::check('secret123', $created->password));
+    }
+
+    /** @test */
+    public function admin_can_update_a_user_role()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create(['role' => 'user']);
+
+        $this->actingAs($admin)
+             ->put(route('admin.users.update', $user->id), [
+                 'name'  => 'Updated Name',
+                 'email' => $user->email,
+                 'role'  => 'admin',
+             ])
+             ->assertRedirect(route('admin.users.index'));
+
+        $this->assertDatabaseHas('users', [
+            'id'   => $user->id,
+            'name' => 'Updated Name',
+            'role' => 'admin',
+        ]);
+    }
+
+    /** @test */
+    public function updating_without_password_keeps_existing_password()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $user = User::factory()->create([
+            'role'     => 'user',
+            'password' => 'old-secret',
+        ]);
+
+        $this->actingAs($admin)
+             ->put(route('admin.users.update', $user->id), [
+                 'name'                  => $user->name,
+                 'email'                 => $user->email,
+                 'role'                  => 'user',
+                 'password'              => '',
+                 'password_confirmation' => '',
+             ])
+             ->assertRedirect(route('admin.users.index'));
+
+        $this->assertTrue(Hash::check('old-secret', $user->refresh()->password));
     }
 }
