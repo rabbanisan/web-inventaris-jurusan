@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\Facades\Vite;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +23,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+
+        // User yang sudah login tapi membuka /login atau /register
+        // (middleware 'guest') diarahkan sesuai role-nya:
+        // admin → dashboard, user biasa → katalog publik.
+        RedirectIfAuthenticated::redirectUsing(
+            fn ($request) => $request->user()?->isAdmin()
+                ? route('dashboard')
+                : route('katalog')
+        );
 
         if (app()->environment('production')) {
             URL::forceScheme('https');
