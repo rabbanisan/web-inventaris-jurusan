@@ -40,10 +40,12 @@ class Barang extends Model
             return null;
         }
 
-        if (str_starts_with($this->gambar, 'http://') || str_starts_with($this->gambar, 'https://')) {
-            return $this->gambar;
+        $gambar = (string) $this->gambar;
+
+        if (str_starts_with($gambar, 'http://') || str_starts_with($gambar, 'https://')) {
+            return $gambar;
         }
 
-        return Storage::disk('public')->url($this->gambar); // Fix this line problem. AI!
+        return Storage::disk('public')->url($gambar);
     }
 }
