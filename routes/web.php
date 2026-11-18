@@ -33,6 +33,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    Route::get('/user/dashboard', [DashboardController::class, 'user'])
+        ->name('user.dashboard');
+
     // Katalog untuk user yang sudah login (tampil di dalam layout sidebar)
     Route::get('/user/katalog', [PublicCatalogController::class, 'index'])->name('user.katalog');
 

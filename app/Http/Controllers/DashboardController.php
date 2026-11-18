@@ -39,6 +39,17 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function user(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->isAdmin()) {
+            return redirect()->to(route('dashboard', absolute: false));
+        }
+
+        return $this->userDashboard($user);
+    }
+
     private function userDashboard($user)
     {
         // dd('cabang user jalan');
