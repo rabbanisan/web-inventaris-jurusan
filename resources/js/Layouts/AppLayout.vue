@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Link, router, usePage } from "@inertiajs/vue3";
 
 const sidebarOpen = ref(true);
@@ -10,26 +10,64 @@ const page = usePage();
 const user = computed(() => page.props.auth?.user ?? null);
 const isAdmin = computed(() => user.value?.role === "admin");
 
-const navigation = computed(() => [
-    { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
-    ...(isAdmin.value
-        ? [
-              { name: "Barang", href: "/barang", icon: "inventory" },
-              { name: "Kategori", href: "/kategori", icon: "category" },
-              { name: "Ruangan", href: "/ruangan", icon: "room" },
-              { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
-              { name: "Kelola User", href: "/admin/users", icon: "user" },
-          ]
-        : []),
-]);
+const navigation = computed(() => {
+    // User biasa (peminjam): dashboard pribadi + katalog barang.
+    if (!isAdmin.value) {
+        return [
+            { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
+            { name: "Catalog", href: "/user/katalog", icon: "inventory" },
+        ];
+    }
+
+    // Petugas Inventaris (admin)
+    return [
+        { name: "Dashboard", href: "/dashboard", icon: "dashboard" },
+        { name: "Barang", href: "/barang", icon: "inventory" },
+        { name: "Kategori", href: "/kategori", icon: "category" },
+        { name: "Ruangan", href: "/ruangan", icon: "room" },
+        { name: "Peminjaman", href: "/peminjaman", icon: "clipboard" },
+        { name: "Kelola User", href: "/admin/users", icon: "user" },
+    ];
+});
 
 function isActive(href) {
-    return page.url.startsWith(href);
+    // Buang query string (?page=2, ?search=...) supaya menu tetap aktif
+    const path = page.url.split("?")[0];
+    return path === href || path.startsWith(`${href}/`);
+}
+
+function closeMobileMenu() {
+    mobileMenuOpen.value = false;
 }
 
 function logout() {
+    mobileMenuOpen.value = false;
     router.post(route("logout"));
 }
+
+// Banner flash message (success / error) dari session Laravel
+const flashMessage = ref(null); // { type: 'success' | 'error', text: string }
+let flashTimer;
+
+function dismissFlash() {
+    clearTimeout(flashTimer);
+    flashMessage.value = null;
+}
+
+watch(
+    () => [page.props.flash?.success, page.props.flash?.error],
+    ([success, error]) => {
+        const text = error || success;
+        if (!text) return; // jangan hapus banner saat navigasi tanpa flash baru
+
+        flashMessage.value = { type: error ? "error" : "success", text };
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(dismissFlash, 5000);
+    },
+    { immediate: true },
+);
+
+onBeforeUnmount(() => clearTimeout(flashTimer));
 </script>
 
 <template>
@@ -48,6 +86,7 @@ function logout() {
                 </h1>
                 <button
                     @click="sidebarOpen = !sidebarOpen"
+                    aria-label="Buka/tutup sidebar"
                     class="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
                 >
                     <svg
@@ -70,6 +109,7 @@ function logout() {
                     v-for="item in navigation"
                     :key="item.name"
                     :href="item.href"
+                    :title="sidebarOpen ? undefined : item.name"
                     :class="[
                         isActive(item.href)
                             ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
@@ -136,7 +176,6 @@ function logout() {
                                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
                             />
                         </svg>
-
                         <!-- Clipboard icon for Peminjaman -->
                         <svg
                             v-else-if="item.icon === 'clipboard'"
@@ -183,7 +222,8 @@ function logout() {
             >
                 <h2 class="text-lg font-semibold">Menu</h2>
                 <button
-                    @click="mobileMenuOpen = false"
+                    @click="closeMobileMenu"
+                    aria-label="Tutup menu"
                     class="p-2 rounded-lg hover:bg-gray-100"
                 >
                     <svg
@@ -206,7 +246,13 @@ function logout() {
                     v-for="item in navigation"
                     :key="item.name"
                     :href="item.href"
-                    class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
+                    @click="closeMobileMenu"
+                    :class="[
+                        isActive(item.href)
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-gray-700 hover:bg-gray-100',
+                        'block px-3 py-2 rounded-md text-base font-medium',
+                    ]"
                 >
                     {{ item.name }}
                 </Link>
@@ -232,6 +278,7 @@ function logout() {
                 <!-- Hamburger button for mobile -->
                 <button
                     @click="mobileMenuOpen = true"
+                    aria-label="Buka menu"
                     class="md:hidden p-2 rounded-lg hover:bg-gray-100"
                 >
                     <svg
@@ -271,6 +318,40 @@ function logout() {
             </header>
 
             <main class="p-6">
+                <!-- Flash message -->
+                <div
+                    v-if="flashMessage"
+                    role="status"
+                    :class="
+                        flashMessage.type === 'error'
+                            ? 'border-red-200 bg-red-50 text-red-800'
+                            : 'border-green-200 bg-green-50 text-green-800'
+                    "
+                    class="mx-auto mb-4 flex max-w-5xl items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm"
+                >
+                    <span>{{ flashMessage.text }}</span>
+                    <button
+                        type="button"
+                        @click="dismissFlash"
+                        aria-label="Tutup pesan"
+                        class="flex-shrink-0 opacity-60 hover:opacity-100"
+                    >
+                        <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"
+                            />
+                        </svg>
+                    </button>
+                </div>
+
                 <slot />
             </main>
         </div>
