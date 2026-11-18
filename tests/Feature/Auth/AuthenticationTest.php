@@ -27,7 +27,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('user.dashboard', absolute: false));
+        $response->assertRedirect(route('catalog.home', absolute: false));
     }
 
     public function test_admin_is_redirected_to_dashboard_after_login(): void
@@ -42,6 +42,21 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticatedAs($admin);
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_regular_user_login_always_lands_on_home_even_with_intended_dashboard(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->withSession([
+            'url.intended' => route('dashboard', absolute: false),
+        ])->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('catalog.home', absolute: false));
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
