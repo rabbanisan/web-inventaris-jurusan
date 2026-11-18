@@ -9,8 +9,14 @@ use Illuminate\Support\Facades\Storage;
 class Barang extends Model
 {
     protected $fillable = [
-        'kode', 'nama', 'kategori_id', 'ruangan_id',
-        'kondisi', 'jumlah', 'keterangan', 'gambar',
+        'kode',
+        'nama',
+        'kategori_id',
+        'ruangan_id',
+        'kondisi',
+        'jumlah',
+        'keterangan',
+        'gambar',
     ];
 
     protected $appends = ['gambar_url'];
@@ -38,6 +44,6 @@ class Barang extends Model
             return $this->gambar;
         }
 
-        return Storage::disk('public')->url($this->gambar);
+        return Storage::disk('public')->url($this->gambar); // Fix this line problem. AI!
     }
 }
